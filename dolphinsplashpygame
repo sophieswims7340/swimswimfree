@@ -1,0 +1,81 @@
+import pygame
+import math
+import sys
+
+# Initialize pygame
+pygame.init()
+
+# Screen setup
+WIDTH, HEIGHT = 800, 500
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Dolphin Splash")
+
+clock = pygame.time.Clock()
+
+# Colors
+DARK_BLUE = (10, 30, 90)
+WAVE_BLUE = (20, 60, 150)
+DOLPHIN_BLUE = (160, 210, 235)
+WHITE = (245, 245, 245)
+
+# Dolphin parameters
+time = 0
+CENTER_X = WIDTH // 2
+WATER_LEVEL = HEIGHT // 2 + 60
+
+def draw_waves(offset):
+    for x in range(0, WIDTH, 40):
+        y = int(WATER_LEVEL + math.sin((x + offset) * 0.03) * 12)
+        pygame.draw.circle(screen, WAVE_BLUE, (x, y), 30)
+
+def draw_dolphin(x, y, angle):
+    # Body
+    body = pygame.Surface((160, 80), pygame.SRCALPHA)
+    pygame.draw.ellipse(body, DOLPHIN_BLUE, (0, 20, 140, 40))
+    pygame.draw.ellipse(body, WHITE, (20, 30, 80, 20))
+
+    # Tail
+    pygame.draw.polygon(
+        body,
+        DOLPHIN_BLUE,
+        [(130, 40), (155, 20), (155, 60)]
+    )
+
+    # Fin
+    pygame.draw.polygon(
+        body,
+        DOLPHIN_BLUE,
+        [(60, 40), (80, 10), (90, 45)]
+    )
+
+    # Rotate dolphin
+    rotated = pygame.transform.rotate(body, angle)
+    rect = rotated.get_rect(center=(x, y))
+    screen.blit(rotated, rect.topleft)
+
+# Main loop
+running = True
+while running:
+    clock.tick(60)
+    time += 0.04
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # Background
+    screen.fill(DARK_BLUE)
+
+    # Dolphin motion
+    dolphin_y = WATER_LEVEL - math.sin(time) * 120
+    dolphin_x = CENTER_X + math.cos(time * 0.6) * 60
+    dolphin_angle = -math.cos(time) * 25
+
+    # Draw waves and dolphin
+    draw_waves(time * 40)
+    draw_dolphin(dolphin_x, dolphin_y, dolphin_angle)
+
+    pygame.display.flip()
+
+pygame.quit()
+sys.exit()
