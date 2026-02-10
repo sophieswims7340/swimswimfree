@@ -1,49 +1,42 @@
 import pygame
 import math
 import sys
-import numpy as np
 
-# ------------------ INIT ------------------
+# Initialize pygame
 pygame.init()
-pygame.mixer.init(frequency=44100, size=-16, channels=1)
+pygame.mixer.init()
 
+# Screen setup
 WIDTH, HEIGHT = 800, 500
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Sunset Dolphin Splash")
+pygame.display.set_caption("Dolphin Splash")
 
 clock = pygame.time.Clock()
 
-# ------------------ COLORS ------------------
+# Colors
 DARK_BLUE = (10, 30, 90)
 WAVE_BLUE = (20, 60, 150)
 DOLPHIN_BLUE = (160, 210, 235)
 WHITE = (245, 245, 245)
-PINK = (255, 120, 170)
-ORANGE = (255, 170, 90)
 
-WATER_LEVEL = HEIGHT // 2 + 60
+SUNSET_TOP = (255, 140, 80)   # orange
+SUNSET_BOTTOM = (255, 100, 180)  # pink
+
+# Dolphin parameters
+time = 0
 CENTER_X = WIDTH // 2
+WATER_LEVEL = HEIGHT // 2 + 60
 
-# ------------------ SOUND ------------------
-def make_dolphin_chirp():
-    sample_rate = 44100
-    duration = 0.25
-    t = np.linspace(0, duration, int(sample_rate * duration))
-    freq = 800 + 1200 * t
-    wave = 0.5 * np.sin(2 * np.pi * freq * t)
-    audio = np.int16(wave * 32767)
-    return pygame.sndarray.make_sound(audio)
+# Load dolphin sound
+dolphin_sound = pygame.mixer.Sound("dolphin.wav")
+sound_played = False
 
-chirp_sound = make_dolphin_chirp()
-played_this_jump = False
-
-# ------------------ DRAWING ------------------
 def draw_sunset():
-    for y in range(HEIGHT):
-        blend = y / HEIGHT
-        r = int(PINK[0] * (1 - blend) + ORANGE[0] * blend)
-        g = int(PINK[1] * (1 - blend) + ORANGE[1] * blend)
-        b = int(PINK[2] * (1 - blend) + ORANGE[2] * blend)
+    for y in range(WATER_LEVEL):
+        ratio = y / WATER_LEVEL
+        r = int(SUNSET_TOP[0] * (1 - ratio) + SUNSET_BOTTOM[0] * ratio)
+        g = int(SUNSET_TOP[1] * (1 - ratio) + SUNSET_BOTTOM[1] * ratio)
+        b = int(SUNSET_TOP[2] * (1 - ratio) + SUNSET_BOTTOM[2] * ratio)
         pygame.draw.line(screen, (r, g, b), (0, y), (WIDTH, y))
 
 def draw_waves(offset):
@@ -54,29 +47,30 @@ def draw_waves(offset):
 def draw_dolphin(x, y, angle):
     body = pygame.Surface((160, 80), pygame.SRCALPHA)
 
+    # Body
     pygame.draw.ellipse(body, DOLPHIN_BLUE, (0, 20, 140, 40))
-    pygame.draw.ellipse(body, WHITE, (25, 32, 70, 18))
+    pygame.draw.ellipse(body, WHITE, (20, 30, 80, 20))
 
+    # Tail
     pygame.draw.polygon(
         body,
         DOLPHIN_BLUE,
         [(130, 40), (155, 20), (155, 60)]
     )
 
+    # Fin
     pygame.draw.polygon(
         body,
         DOLPHIN_BLUE,
-        [(60, 40), (80, 10), (95, 45)]
+        [(60, 40), (80, 10), (90, 45)]
     )
 
     rotated = pygame.transform.rotate(body, angle)
     rect = rotated.get_rect(center=(x, y))
     screen.blit(rotated, rect.topleft)
 
-# ------------------ MAIN LOOP ------------------
-time = 0
+# Main loop
 running = True
-
 while running:
     clock.tick(60)
     time += 0.04
@@ -87,30 +81,27 @@ while running:
 
     # Background
     draw_sunset()
+    pygame.draw.rect(screen, DARK_BLUE, (0, WATER_LEVEL, WIDTH, HEIGHT))
 
     # Dolphin motion
     dolphin_y = WATER_LEVEL - math.sin(time) * 120
     dolphin_x = CENTER_X + math.cos(time * 0.6) * 60
     dolphin_angle = -math.cos(time) * 25
 
-    above_water = dolphin_y < WATER_LEVEL - 10
+    # Play sound at jump peak
+    if dolphin_y < WATER_LEVEL - 80 and not sound_played:
+        dolphin_sound.play()
+        sound_played = True
 
-    # Sound trigger (only once per jump)
-    if above_water and not played_this_jump:
-        chirp_sound.play()
-        played_this_jump = True
+    if dolphin_y > WATER_LEVEL - 5:
+        sound_played = False
 
-    if not above_water:
-        played_this_jump = False
-
-    # Waves
+    # Draw waves and dolphin
     draw_waves(time * 40)
-
-    # Dolphin visibility
-    if above_water:
-        draw_dolphin(dolphin_x, dolphin_y, dolphin_angle)
+    draw_dolphin(dolphin_x, dolphin_y, dolphin_angle)
 
     pygame.display.flip()
 
 pygame.quit()
 sys.exit()
+
